@@ -54,7 +54,7 @@ sns.set_palette("husl")
 # LANGKAH 2: LOAD DATA
 # ===========================================================
 
-DATA_PATH = 'Car_sales.excel'
+DATA_PATH = 'Car_sales.xls'
 df = pd.read_excel(DATA_PATH, engine='xlrd')
 
 print(f"✅ Data berhasil di-load! ({df.shape[0]} baris, {df.shape[1]} kolom)")
