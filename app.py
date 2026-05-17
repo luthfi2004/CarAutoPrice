@@ -341,9 +341,5 @@ def statistik():
 # ============================================================
 
 if __name__ == '__main__':
-    print("\n🚀 Server Flask berjalan di http://localhost:5001")
-    print("   Buka browser dan akses: http://localhost:5001")
-    
-import os
     port = int(os.environ.get("PORT", 5001))
     app.run(debug=False, host="0.0.0.0", port=port)
