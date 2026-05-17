@@ -58,8 +58,8 @@ sns.set_palette("husl")
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH = os.path.join(BASE_DIR, 'Car_sales.xls')
-df = pd.read_excel(DATA_PATH, engine='xlrd')
+DATA_PATH = os.path.join(BASE_DIR, 'Car_sales.csv')
+df = pd.read_csv(DATA_PATH)
 
 print(f"✅ Data berhasil di-load! ({df.shape[0]} baris, {df.shape[1]} kolom)")
 
