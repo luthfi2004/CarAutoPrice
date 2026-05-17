@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoPrice AI — Prediksi Harga Mobil</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   RESET & TOKENS
+═══════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  /* Aurora gradient stops */
+  --p1:#ff4ecd; --p2:#c026d3; --p3:#7c3aed;
+  --b1:#0ea5e9; --b2:#06b6d4; --b3:#10b981;
+  --warn:#f59e0b; --danger:#f43f5e;
+
+  /* Surfaces - light theme inspired by reference */
+  --page:#f5f0ff;
+  --surface:#ffffff;
+  --surface2:#faf7ff;
+  --surface3:#f0ebff;
+  --sidebar-bg:#ffffff;
+  --sidebar-accent:#7c3aed;
+
+  /* Text */
+  --tx1:#1a1033; --tx2:#6b5fa0; --tx3:#a89ec8;
+
+  /* Borders */
+  --bd:rgba(124,58,237,0.10);
+  --bd2:rgba(124,58,237,0.18);
+
+  /* Shadows */
+  --sh: 0 2px 16px rgba(124,58,237,0.10);
+  --sh2: 0 8px 32px rgba(124,58,237,0.16);
+
+  --sidebar-w:220px;
+  --topbar-h:62px;
+  --r:14px; --r-sm:9px; --r-xs:6px; --r-pill:99px;
+
+  --font-ui:'Plus Jakarta Sans',sans-serif;
+  --font-serif:'Instrument Serif',serif;
+}
+
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font-ui);
+  background:var(--page);
+  color:var(--tx1);
+  min-height:100vh;
+  display:flex;
+  overflow-x:hidden;
+}
+
+/* Aurora page noise + glow background */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 55% 45% at 0% 0%,   rgba(192,38,211,0.07),transparent 60%),
+    radial-gradient(ellipse 50% 40% at 100% 100%,rgba(6,182,212,0.07),transparent 60%),
+    radial-gradient(ellipse 40% 35% at 70% 10%,  rgba(124,58,237,0.05),transparent 55%),
+    radial-gradient(ellipse 35% 30% at 10% 80%,  rgba(16,185,129,0.04),transparent 50%);
+}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════ */
+.sidebar{
+  position:fixed;top:0;left:0;bottom:0;
+  width:var(--sidebar-w);z-index:300;
+  background:var(--sidebar-bg);
+  border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;
+  box-shadow:4px 0 24px rgba(124,58,237,0.06);
+  overflow:hidden;
+}
+
+/* Thin aurora stripe at top of sidebar */
+.sidebar-top-stripe{
+  height:3px;width:100%;flex-shrink:0;
+  background:linear-gradient(90deg,var(--p1),var(--p3),var(--b1),var(--b3));
+}
+
+.sb-logo{
+  display:flex;align-items:center;gap:10px;
+  padding:0 1.2rem;height:var(--topbar-h);
+  border-bottom:1px solid var(--bd);flex-shrink:0;
+}
+.sb-logo-mark{
+  width:34px;height:34px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--p1),var(--p3));
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:#fff;
+  box-shadow:0 4px 14px rgba(124,58,237,0.35);
+}
+.sb-logo-name{
+  font-family:var(--font-serif);font-size:1.15rem;font-style:italic;
+  background:linear-gradient(120deg,var(--p2),var(--b1));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+  letter-spacing:-0.3px;
+}
+.sb-logo-dot{
+  font-style:normal;
+  background:linear-gradient(120deg,var(--b1),var(--b3));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+}
+
+.sb-section{
+  padding:.9rem 1rem .25rem;
+  font-size:.6rem;font-weight:700;letter-spacing:1.3px;
+  text-transform:uppercase;color:var(--tx3);
+}
+
+.sb-item{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 1rem 8px 1.1rem;
+  margin:1px .6rem;border-radius:var(--r-sm);
+  color:var(--tx2);font-size:.82rem;font-weight:500;
+  text-decoration:none;cursor:pointer;transition:all .17s;
+  position:relative;
+}
+.sb-item:hover{background:var(--surface3);color:var(--tx1);}
+.sb-item.active{
+  background:linear-gradient(90deg,rgba(124,58,237,0.09),rgba(14,165,233,0.05));
+  color:var(--p3);font-weight:600;
+}
+.sb-item.active::before{
+  content:'';position:absolute;left:0;top:22%;bottom:22%;width:3px;
+  background:linear-gradient(180deg,var(--p1),var(--p3));
+  border-radius:0 3px 3px 0;
+}
+.sb-icon{font-size:.95rem;width:19px;text-align:center;flex-shrink:0;}
+
+.sb-footer{
+  margin-top:auto;padding:1rem 1.1rem 1.1rem;
+  border-top:1px solid var(--bd);
+  background:linear-gradient(180deg,transparent,rgba(124,58,237,0.03));
+}
+.sb-footer-lbl{font-size:.6rem;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);margin-bottom:6px;}
+.sb-footer-line{font-size:.76rem;color:var(--tx2);line-height:1.9;}
+
+/* ═══════════════════════════════════════════
+   MAIN WRAPPER
+═══════════════════════════════════════════ */
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;position:relative;z-index:1;}
+
+/* ═══════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════ */
+.topbar{
+  position:sticky;top:0;z-index:200;height:var(--topbar-h);
+  background:rgba(255,255,255,0.85);backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 1.75rem;
+  box-shadow:0 1px 0 var(--bd);
+}
+.tb-left{}
+.tb-title{font-size:.92rem;font-weight:700;color:var(--tx1);}
+.tb-sub{font-size:.68rem;color:var(--tx3);margin-top:1px;}
+.tb-right{display:flex;align-items:center;gap:.75rem;}
+.tb-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  background:linear-gradient(135deg,rgba(192,38,211,0.08),rgba(124,58,237,0.08));
+  border:1px solid rgba(124,58,237,0.18);
+  padding:5px 14px;border-radius:var(--r-pill);
+  font-size:.7rem;font-weight:600;color:var(--p3);
+}
+.tb-pill::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--b3);box-shadow:0 0 6px var(--b3);
+  animation:live 2s ease infinite;
+}
+@keyframes live{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ═══════════════════════════════════════════
+   PAGE BODY
+═══════════════════════════════════════════ */
+.page-body{padding:1.5rem 1.75rem 2.5rem;flex:1;}
+
+/* ═══════════════════════════════════════════
+   STAT CARDS
+═══════════════════════════════════════════ */
+.stat-row{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:.9rem;margin-bottom:1.5rem;
+}
+.stat-card{
+  background:var(--surface);border:1px solid var(--bd);
+  border-radius:var(--r);padding:1.1rem 1.15rem;
+  box-shadow:var(--sh);
+  position:relative;overflow:hidden;
+  transition:transform .2s,box-shadow .2s;
+  cursor:default;
+}
+.stat-card:hover{transform:translateY(-3px);box-shadow:var(--sh2);}
+
+/* Coloured glow blob per card */
+.stat-card::after{
+  content:'';position:absolute;bottom:-20px;right:-20px;
+  width:70px;height:70px;border-radius:50%;opacity:.14;pointer-events:none;
+}
+.stat-card:nth-child(1)::after{background:var(--p1);}
+.stat-card:nth-child(2)::after{background:var(--p3);}
+.stat-card:nth-child(3)::after{background:var(--b1);}
+.stat-card:nth-child(4)::after{background:var(--b3);}
+.stat-card:nth-child(5)::after{background:var(--warn);}
+
+/* Aurora top bar per card */
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+}
+.stat-card:nth-child(1)::before{background:linear-gradient(90deg,var(--p1),var(--p2));}
+.stat-card:nth-child(2)::before{background:linear-gradient(90deg,var(--p2),var(--p3));}
+.stat-card:nth-child(3)::before{background:linear-gradient(90deg,var(--p3),var(--b1));}
+.stat-card:nth-child(4)::before{background:linear-gradient(90deg,var(--b1),var(--b3));}
+.stat-card:nth-child(5)::before{background:linear-gradient(90deg,var(--b3),var(--warn));}
+
+.sc-chip{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:var(--r-xs);
+  font-size:.85rem;margin-bottom:.6rem;
+}
+.sc-chip.c1{background:rgba(255,78,205,0.12);}
+.sc-chip.c2{background:rgba(124,58,237,0.12);}
+.sc-chip.c3{background:rgba(14,165,233,0.12);}
+.sc-chip.c4{background:rgba(16,185,129,0.12);}
+.sc-chip.c5{background:rgba(245,158,11,0.12);}
+.sc-val{font-family:var(--font-ui);font-size:1.5rem;font-weight:800;color:var(--tx1);display:block;line-height:1;}
+.sc-lbl{font-size:.65rem;font-weight:500;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-top:4px;display:block;}
+
+/* ═══════════════════════════════════════════
+   CONTENT GRID
+═══════════════════════════════════════════ */
+.content-grid{
+  display:grid;
+  grid-template-columns:380px 1fr;
+  gap:1.1rem;
+  margin-bottom:1.5rem;
+  align-items:start;
+}
+
+/* ═══════════════════════════════════════════
+   CARD
+═══════════════════════════════════════════ */
+.card{
+  background:var(--surface);border:1px solid var(--bd);
+  border-radius:var(--r);padding:1.3rem;
+  box-shadow:var(--sh);
+  position:relative;overflow:hidden;
+}
+.card-head{display:flex;align-items:center;gap:9px;margin-bottom:1.15rem;}
+.card-head-dot{
+  width:9px;height:9px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--p1),var(--p3));
+  box-shadow:0 0 8px rgba(255,78,205,.4);
+}
+.card-head-title{font-size:.88rem;font-weight:700;color:var(--tx1);}
+.card-head-sub{font-size:.68rem;color:var(--tx3);margin-left:auto;}
+
+/* ═══════════════════════════════════════════
+   FORM ELEMENTS
+═══════════════════════════════════════════ */
+.form-group{margin-bottom:.8rem;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
+
+.field-lbl{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.67rem;font-weight:600;color:var(--tx2);
+  margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;
+}
+.unit-chip{
+  background:rgba(124,58,237,0.08);
+  border:1px solid rgba(124,58,237,0.15);
+  color:var(--p3);padding:1px 7px;border-radius:var(--r-pill);
+  font-size:.6rem;font-weight:500;text-transform:none;letter-spacing:0;
+}
+
+.input-wrap{
+  display:flex;align-items:stretch;
+  background:var(--surface2);
+  border:1.5px solid var(--bd2);
+  border-radius:var(--r-sm);overflow:hidden;
+  transition:border-color .17s,box-shadow .17s;
+}
+.input-wrap:focus-within{
+  border-color:var(--p3);
+  box-shadow:0 0 0 3px rgba(124,58,237,.10);
+}
+.input-wrap input[type="number"]{
+  flex:1;background:transparent;border:none;
+  color:var(--tx1);padding:9px 11px;
+  font-family:var(--font-ui);font-size:.86rem;outline:none;width:100%;
+}
+.input-wrap input[type="number"]::-webkit-outer-spin-button,
+.input-wrap input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.input-wrap input[type="number"]{-moz-appearance:textfield;}
+.input-wrap input::placeholder{color:var(--tx3);}
+.inp-unit{
+  padding:9px 9px;font-size:.68rem;font-weight:600;
+  color:var(--tx3);background:rgba(124,58,237,0.04);
+  border-left:1px solid var(--bd);white-space:nowrap;
+  user-select:none;display:flex;align-items:center;
+}
+
+select{
+  width:100%;background:var(--surface2);border:1.5px solid var(--bd2);
+  color:var(--tx1);padding:9px 32px 9px 11px;
+  border-radius:var(--r-sm);font-family:var(--font-ui);
+  font-size:.86rem;outline:none;cursor:pointer;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236b5fa0' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  transition:border-color .17s,box-shadow .17s;
+}
+select:focus{border-color:var(--p3);box-shadow:0 0 0 3px rgba(124,58,237,.10);}
+
+/* ═══════════════════════════════════════════
+   BUTTON
+═══════════════════════════════════════════ */
+.btn-aurora{
+  width:100%;padding:12px;border:none;border-radius:var(--r-sm);
+  font-family:var(--font-ui);font-size:.88rem;font-weight:700;
+  color:#fff;cursor:pointer;margin-top:.9rem;letter-spacing:.2px;
+  position:relative;overflow:hidden;
+  background:linear-gradient(135deg,var(--p1) 0%,var(--p3) 45%,var(--b1) 100%);
+  background-size:200% 200%;animation:abtn 4s ease infinite;
+  box-shadow:0 4px 18px rgba(124,58,237,.28);
+  transition:transform .18s,box-shadow .18s;
+}
+@keyframes abtn{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.btn-aurora::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.15),transparent);
+  pointer-events:none;
+}
+.btn-aurora:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(124,58,237,.38);}
+.btn-aurora:active{transform:translateY(0);}
+.btn-aurora:disabled{opacity:.55;cursor:not-allowed;transform:none;animation:none;}
+
+/* ═══════════════════════════════════════════
+   RESULT PANEL
+═══════════════════════════════════════════ */
+.result-col{display:flex;flex-direction:column;gap:1.1rem;}
+
+/* Price hero card — full gradient */
+.price-hero{
+  border-radius:var(--r);padding:2rem 1.75rem;text-align:center;
+  background:linear-gradient(135deg,var(--p2) 0%,var(--p3) 40%,var(--b1) 100%);
+  position:relative;overflow:hidden;
+  box-shadow:0 8px 32px rgba(124,58,237,.28);
+}
+.price-hero::before{
+  content:'';position:absolute;top:-50px;right:-50px;
+  width:160px;height:160px;border-radius:50%;
+  background:rgba(255,255,255,.07);pointer-events:none;
+}
+.price-hero::after{
+  content:'';position:absolute;bottom:-40px;left:-30px;
+  width:120px;height:120px;border-radius:50%;
+  background:rgba(255,255,255,.05);pointer-events:none;
+}
+.ph-eyebrow{
+  font-size:.62rem;font-weight:600;letter-spacing:1.3px;
+  text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:.55rem;
+}
+.ph-value{
+  font-family:var(--font-serif);font-size:3.2rem;font-style:italic;
+  font-weight:400;color:#fff;line-height:1;margin-bottom:.5rem;
+  text-shadow:0 2px 20px rgba(0,0,0,.2);
+  transition:all .5s cubic-bezier(.34,1.56,.64,1);
+}
+.ph-sub{font-size:.74rem;color:rgba(255,255,255,.55);max-width:260px;margin:0 auto;line-height:1.5;}
+
+/* Spec grid */
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;}
+.spec-item{
+  background:var(--surface2);border:1px solid var(--bd);
+  border-radius:var(--r-sm);padding:.6rem .8rem;
+  transition:border-color .17s,transform .17s;
+}
+.spec-item:hover{border-color:var(--bd2);transform:translateY(-1px);}
+.s-lbl{font-size:.6rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+.s-val{font-size:.86rem;font-weight:600;color:var(--tx1);}
+
+/* Metrics */
+.metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;}
+.metric-box{
+  background:var(--surface2);border:1px solid var(--bd);
+  border-radius:var(--r-sm);padding:.9rem;text-align:center;
+  transition:border-color .17s;
+}
+.metric-box:hover{border-color:rgba(14,165,233,.3);}
+.m-val{
+  font-size:1.25rem;font-weight:800;
+  background:linear-gradient(135deg,var(--p1),var(--p3));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+}
+.m-lbl{font-size:.6rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-top:3px;}
+.metric-note{font-size:.7rem;color:var(--tx3);line-height:1.65;margin-top:.8rem;padding-top:.8rem;border-top:1px solid var(--bd);}
+
+/* Author */
+.author-card{
+  border:1.5px solid rgba(124,58,237,.15);border-radius:var(--r-sm);
+  padding:.9rem 1rem;text-align:center;font-size:.78rem;
+  color:var(--tx2);line-height:1.85;
+  background:linear-gradient(135deg,rgba(192,38,211,.04),rgba(14,165,233,.03));
+}
+.author-card strong{color:var(--b1);}
+
+/* ═══════════════════════════════════════════
+   CHARTS SECTION
+═══════════════════════════════════════════ */
+.sec-head{display:flex;align-items:center;gap:12px;margin-bottom:1rem;}
+.sec-head h2{font-size:.9rem;font-weight:700;color:var(--tx1);white-space:nowrap;}
+.sec-line{flex:1;height:1px;background:var(--bd);}
+.sec-badge{
+  background:linear-gradient(135deg,var(--p1),var(--b1));
+  color:#fff;font-size:.6rem;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;padding:3px 10px;border-radius:var(--r-pill);
+}
+
+.charts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;}
+.chart-card{
+  background:var(--surface);border:1px solid var(--bd);
+  border-radius:var(--r);padding:1.1rem;
+  box-shadow:var(--sh);position:relative;overflow:hidden;
+}
+/* Gradient top bar per chart card */
+.chart-card:nth-child(1)::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--p1),var(--p2));}
+.chart-card:nth-child(2)::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--p2),var(--p3));}
+.chart-card:nth-child(3)::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--p3),var(--b1));}
+.chart-card:nth-child(4)::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--b1),var(--b3));}
+.chart-lbl{font-size:.65rem;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:.8rem;display:flex;align-items:center;gap:6px;}
+.chart-lbl::before{content:'';width:5px;height:5px;border-radius:50%;background:linear-gradient(135deg,var(--p3),var(--b1));}
+.chart-card img{width:100%;border-radius:var(--r-xs);display:block;}
+.chart-ph{height:230px;background:var(--surface2);border-radius:var(--r-xs);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--tx3);font-size:.76rem;}
+.spinner{width:24px;height:24px;border-radius:50%;border:2.5px solid rgba(124,58,237,.12);border-top-color:var(--p3);animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
+.toast{
+  position:fixed;bottom:1.75rem;right:1.75rem;z-index:999;
+  background:var(--surface);border:1.5px solid var(--bd2);
+  border-radius:var(--r-sm);padding:.8rem 1.1rem;
+  font-size:.78rem;display:flex;align-items:center;gap:9px;
+  box-shadow:0 8px 32px rgba(124,58,237,.15);
+  transform:translateY(12px);opacity:0;pointer-events:none;
+  transition:all .25s cubic-bezier(.34,1.56,.64,1);max-width:300px;
+  color:var(--tx1);
+}
+.toast.show{transform:translateY(0);opacity:1;pointer-events:auto;}
+.toast.error{border-color:rgba(244,63,94,.3);}
+.toast.success{border-color:rgba(16,185,129,.3);}
+.t-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.toast.error .t-dot{background:var(--danger);box-shadow:0 0 6px var(--danger);}
+.toast.success .t-dot{background:var(--b3);box-shadow:0 0 6px var(--b3);}
+
+/* ═══════════════════════════════════════════
+   LOADER
+═══════════════════════════════════════════ */
+#loader{
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#0d0520,#050b18);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.25rem;
+  transition:opacity .5s;
+}
+#loader.hide{opacity:0;pointer-events:none;}
+.ld-title{
+  font-family:var(--font-serif);font-size:2rem;font-style:italic;
+  background:linear-gradient(135deg,var(--p1),var(--p3),var(--b1));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+}
+.ld-bar{width:160px;height:2px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;}
+.ld-bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--p1),var(--p3),var(--b1));border-radius:99px;animation:ld 1.5s ease-in-out forwards;}
+@keyframes ld{to{width:100%}}
+.ld-sub{font-size:.75rem;color:rgba(255,255,255,.35);}
+
+/* ═══════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════ */
+footer{
+  border-top:1px solid var(--bd);padding:1rem 1.75rem;
+  text-align:center;font-size:.7rem;color:var(--tx3);
+  background:var(--surface);
+}
+
+/* ═══════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════ */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(124,58,237,.2);border-radius:99px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(124,58,237,.4);}
+</style>
+</head>
+<body>
+
+<!-- ─────── LOADER ─────── -->
+<div id="loader">
+  <div class="ld-title">AutoPrice AI</div>
+  <div class="ld-bar"><div class="ld-bar-fill"></div></div>
+  <div class="ld-sub">Memuat model prediksi...</div>
+</div>
+
+<!-- ─────── SIDEBAR ─────── -->
+<aside class="sidebar">
+  <div class="sidebar-top-stripe"></div>
+  <div class="sb-logo">
+    <div class="sb-logo-mark">🚗</div>
+    <div class="sb-logo-name">AutoPrice<span class="sb-logo-dot">.</span></div>
+  </div>
+
+  <div class="sb-section">Menu Utama</div>
+  <a class="sb-item active" href="#top"><span class="sb-icon">▣</span>Dashboard</a>
+  <a class="sb-item" href="#prediksi"><span class="sb-icon">✦</span>Prediksi Harga</a>
+  <a class="sb-item" href="#charts"><span class="sb-icon">◈</span>Analisis Data</a>
+  <a class="sb-item" href="#model-sec"><span class="sb-icon">◉</span>Performa Model</a>
+
+  <div class="sb-section">Info</div>
+  <a class="sb-item" href="#"><span class="sb-icon">⊙</span>CRISP-DM</a>
+  <a class="sb-item" href="#"><span class="sb-icon">☰</span>Dokumentasi</a>
+
+  <div class="sb-footer">
+    <div class="sb-footer-lbl">Sistem Dibuat Oleh</div>
+    <div class="sb-footer-line">Nama : ……………………</div>
+    <div class="sb-footer-line">NPM &nbsp;&nbsp;: ……………………</div>
+  </div>
+</aside>
+
+<!-- ─────── MAIN ─────── -->
+<div class="main" id="top">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="tb-title">Dashboard Prediksi Harga Mobil</div>
+      <div class="tb-sub">Final Project · Mata Kuliah Sains Data · Linear Regression + CRISP-DM</div>
+    </div>
+    <div class="tb-right">
+      <div class="tb-pill">● &nbsp;Model Aktif</div>
+    </div>
+  </div>
+
+  <!-- PAGE BODY -->
+  <div class="page-body">
+
+    <!-- STAT CARDS -->
+    <div class="stat-row">
+      <div class="stat-card"><div class="sc-chip c1">📊</div><span class="sc-val" id="st-total">—</span><span class="sc-lbl">Total Data</span></div>
+      <div class="stat-card"><div class="sc-chip c2">🏷️</div><span class="sc-val" id="st-merek">—</span><span class="sc-lbl">Merek Mobil</span></div>
+      <div class="stat-card"><div class="sc-chip c3">💵</div><span class="sc-val" id="st-hrata">—</span><span class="sc-lbl">Harga Rata-rata</span></div>
+      <div class="stat-card"><div class="sc-chip c4">🎯</div><span class="sc-val" id="st-r2">—</span><span class="sc-lbl">R² Score</span></div>
+      <div class="stat-card"><div class="sc-chip c5">📉</div><span class="sc-val" id="st-rmse">—</span><span class="sc-lbl">RMSE (K USD)</span></div>
+    </div>
+
+    <!-- CONTENT GRID -->
+    <div class="content-grid" id="prediksi">
+
+      <!-- FORM CARD -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-dot"></div>
+          <div class="card-head-title">Spesifikasi Mobil</div>
+          <div class="card-head-sub">Isi semua field</div>
+        </div>
+
+        <div class="form-group">
+          <div class="field-lbl">Tipe Kendaraan</div>
+          <select id="vehicle_type">
+            <option value="Passenger">Passenger</option>
+            <option value="Car">Car</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0">
+            <div class="field-lbl">Engine Size <span class="unit-chip">Liter</span></div>
+            <div class="input-wrap">
+              <input type="number" id="engine_size" min="1" max="8" step="0.1" value="3.0" placeholder="cth: 3.0">
+              <span class="inp-unit">L</span>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <div class="field-lbl">Horsepower <span class="unit-chip">HP</span></div>
+            <div class="input-wrap">
+              <input type="number" id="horsepower" min="60" max="400" step="1" value="200" placeholder="cth: 200">
+              <span class="inp-unit">HP</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:.7rem">
+          <div class="form-group" style="margin-bottom:0">
+            <div class="field-lbl">Width <span class="unit-chip">inci</span></div>
+            <div class="input-wrap">
+              <input type="number" id="width" min="60" max="85" step="0.1" value="70.0" placeholder="cth: 70.0">
+              <span class="inp-unit">in</span>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <div class="field-lbl">Length <span class="unit-chip">inci</span></div>
+            <div class="input-wrap">
+              <input type="number" id="length" min="140" max="225" step="0.1" value="180.0" placeholder="cth: 180.0">
+              <span class="inp-unit">in</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:.7rem">
+          <div class="field-lbl">Wheelbase <span class="unit-chip">inci</span></div>
+          <div class="input-wrap">
+            <input type="number" id="wheelbase" min="85" max="140" step="0.1" value="108.0" placeholder="cth: 108.0">
+            <span class="inp-unit">in</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="field-lbl">Curb Weight <span class="unit-chip">lbs ×1000</span></div>
+          <div class="input-wrap">
+            <input type="number" id="curb_weight" min="1.5" max="6.0" step="0.01" value="3.30" placeholder="cth: 3.30">
+            <span class="inp-unit">×1K</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0">
+            <div class="field-lbl">Fuel Capacity <span class="unit-chip">galon</span></div>
+            <div class="input-wrap">
+              <input type="number" id="fuel_capacity" min="8" max="35" step="0.1" value="16.0" placeholder="cth: 16.0">
+              <span class="inp-unit">gal</span>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <div class="field-lbl">Fuel Efficiency <span class="unit-chip">mpg</span></div>
+            <div class="input-wrap">
+              <input type="number" id="fuel_efficiency" min="10" max="50" step="0.1" value="27.0" placeholder="cth: 27.0">
+              <span class="inp-unit">mpg</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-aurora" id="btn-predict" onclick="doPredict()">
+          ✦ &nbsp; Hitung Harga Mobil
+        </button>
+      </div>
+
+      <!-- RESULT COLUMN -->
+      <div class="result-col">
+
+        <!-- PRICE HERO -->
+        <div class="price-hero">
+          <div class="ph-eyebrow">Perkiraan Harga Mobil</div>
+          <div class="ph-value" id="price-display">—</div>
+          <div class="ph-sub" id="price-sub">Masukkan spesifikasi lalu klik tombol prediksi</div>
+        </div>
+
+        <!-- SPEC RESULT -->
+        <div class="card" id="spec-result" style="display:none">
+          <div class="card-head">
+            <div class="card-head-dot"></div>
+            <div class="card-head-title">Spesifikasi yang Diinput</div>
+          </div>
+          <div class="spec-grid" id="spec-grid"></div>
+        </div>
+
+        <!-- MODEL METRICS -->
+        <div class="card" id="model-sec">
+          <div class="card-head">
+            <div class="card-head-dot"></div>
+            <div class="card-head-title">Performa Model</div>
+            <div class="card-head-sub">Linear Regression</div>
+          </div>
+          <div class="metrics-row">
+            <div class="metric-box"><div class="m-val" id="m-rmse">—</div><div class="m-lbl">RMSE</div></div>
+            <div class="metric-box"><div class="m-val" id="m-r2">—</div><div class="m-lbl">R² Score</div></div>
+            <div class="metric-box"><div class="m-val" id="m-mae">—</div><div class="m-lbl">MAE</div></div>
+          </div>
+          <div class="metric-note">
+            <strong style="color:var(--tx2)">RMSE</strong> = rata-rata kesalahan prediksi &nbsp;·&nbsp;
+            <strong style="color:var(--tx2)">R²</strong> = proporsi variasi yang dijelaskan model &nbsp;·&nbsp;
+            <strong style="color:var(--tx2)">MAE</strong> = mean absolute error
+          </div>
+        </div>
+
+        <!-- AUTHOR -->
+        <div class="author-card">
+          SISTEM INI DIBUAT OLEH<br>
+          <strong>Nama : …………………………………</strong><br>
+          <strong>NPM &nbsp;&nbsp;: …………………………………</strong>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div id="charts">
+      <div class="sec-head">
+        <h2>Analisis Data</h2>
+        <div class="sec-line"></div>
+        <div class="sec-badge">EDA</div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card"><div class="chart-lbl">Top 10 Mobil — Penjualan Terbanyak</div><div class="chart-ph" id="ph-penjualan"><div class="spinner"></div>Memuat chart...</div></div>
+        <div class="chart-card"><div class="chart-lbl">Harga 10 Mobil Terlaris</div><div class="chart-ph" id="ph-harga"><div class="spinner"></div>Memuat chart...</div></div>
+        <div class="chart-card"><div class="chart-lbl">Evaluasi Model — Scatter Plot</div><div class="chart-ph" id="ph-evaluasi"><div class="spinner"></div>Memuat chart...</div></div>
+        <div class="chart-card"><div class="chart-lbl">Heatmap Korelasi Variabel</div><div class="chart-ph" id="ph-korelasi"><div class="spinner"></div>Memuat chart...</div></div>
+      </div>
+    </div>
+
+  </div><!-- /page-body -->
+  <footer>AutoPrice AI &nbsp;·&nbsp; Final Project Mata Kuliah Sains Data &nbsp;·&nbsp; Linear Regression + CRISP-DM</footer>
+</div><!-- /main -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"><div class="t-dot"></div><span id="toast-msg"></span></div>
+
+<script>
+const API='http://localhost:5001';
+const numInputs=['engine_size','horsepower','wheelbase','curb_weight','fuel_capacity','fuel_efficiency','width','length'];
+
+/* Realtime validation */
+numInputs.forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener('input',()=>{
+    const v=parseFloat(el.value),mn=parseFloat(el.min),mx=parseFloat(el.max);
+    const w=el.closest('.input-wrap');
+    if(isNaN(v)||v<mn||v>mx){w.style.borderColor='rgba(244,63,94,.55)';w.style.boxShadow='0 0 0 3px rgba(244,63,94,.08)';}
+    else{w.style.borderColor='';w.style.boxShadow='';}
+  });
+});
+
+/* Nav active */
+document.querySelectorAll('.sb-item').forEach(a=>{
+  a.addEventListener('click',function(){
+    document.querySelectorAll('.sb-item').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+/* Toast */
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.className='toast '+type;
+  document.getElementById('toast-msg').textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+/* Animate number */
+function animNum(el,target,pre='$',suf='',dec=0){
+  const dur=700,t0=performance.now();
+  (function step(now){
+    const p=Math.min((now-t0)/dur,1),e=1-Math.pow(1-p,3),v=target*e;
+    el.textContent=pre+v.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec})+suf;
+    if(p<1)requestAnimationFrame(step);
+  })(performance.now());
+}
+
+/* Load stats */
+async function loadStats(){
+  try{
+    const[s,m]=await Promise.all([
+      fetch(API+'/api/statistik').then(r=>r.json()),
+      fetch(API+'/api/model-info').then(r=>r.json()),
+    ]);
+    document.getElementById('st-total').textContent=s.total_mobil;
+    document.getElementById('st-merek').textContent=s.total_merek;
+    document.getElementById('st-hrata').textContent='$'+Math.round(s.harga_rata*1000).toLocaleString();
+    document.getElementById('st-r2').textContent=(m.r2*100).toFixed(1)+'%';
+    document.getElementById('st-rmse').textContent=m.rmse.toFixed(3);
+    document.getElementById('m-rmse').textContent=m.rmse.toFixed(4);
+    document.getElementById('m-r2').textContent=(m.r2*100).toFixed(2)+'%';
+    document.getElementById('m-mae').textContent=m.mae.toFixed(4);
+    showToast('Model berhasil dimuat ✓');
+  }catch(e){showToast('Tidak dapat terhubung ke server Flask. Pastikan app.py berjalan.','error');}
+}
+
+/* Load chart */
+async function loadChart(ep,phId){
+  try{
+    const d=await fetch(API+ep).then(r=>r.json());
+    const ph=document.getElementById(phId);
+    const img=document.createElement('img');img.src='data:image/png;base64,'+d.image;img.alt='Chart';
+    ph.replaceWith(img);
+  }catch(e){
+    const ph=document.getElementById(phId);
+    if(ph)ph.innerHTML='<span style="color:rgba(244,63,94,.7)">Gagal memuat chart</span>';
+  }
+}
+
+/* Predict */
+async function doPredict(){
+  const btn=document.getElementById('btn-predict');
+  for(const id of numInputs){
+    const el=document.getElementById(id);const v=parseFloat(el.value);
+    const w=el.closest('.input-wrap');
+    if(el.value===''||isNaN(v)){
+      showToast('Field "'+id.replace(/_/g,' ')+'" tidak boleh kosong!','error');
+      w.style.borderColor='rgba(244,63,94,.55)';w.style.boxShadow='0 0 0 3px rgba(244,63,94,.08)';
+      el.focus();return;
+    }
+    w.style.borderColor='';w.style.boxShadow='';
+  }
+  btn.disabled=true;btn.textContent='⏳  Memproses...';
+
+  const payload={
+    vehicle_type:document.getElementById('vehicle_type').value,
+    engine_size:parseFloat(document.getElementById('engine_size').value),
+    horsepower:parseFloat(document.getElementById('horsepower').value),
+    wheelbase:parseFloat(document.getElementById('wheelbase').value),
+    width:parseFloat(document.getElementById('width').value),
+    length:parseFloat(document.getElementById('length').value),
+    curb_weight:parseFloat(document.getElementById('curb_weight').value),
+    fuel_capacity:parseFloat(document.getElementById('fuel_capacity').value),
+    fuel_efficiency:parseFloat(document.getElementById('fuel_efficiency').value),
+  };
+
+  try{
+    const res=await fetch(API+'/api/prediksi',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok){const e=await res.json().catch(()=>({}));showToast('Server error: '+(e.error||res.status),'error');return;}
+    const data=await res.json();
+    if(data.success){
+      animNum(document.getElementById('price-display'),data.harga_usd,'$','',0);
+      document.getElementById('price-sub').textContent='Estimasi: $'+data.harga_ribu.toFixed(3)+'K  ·  Berdasarkan model Linear Regression';
+      const labels={vehicle_type:'Vehicle Type',engine_size:'Engine Size',horsepower:'Horsepower',wheelbase:'Wheelbase',width:'Width',length:'Length',curb_weight:'Curb Weight',fuel_capacity:'Fuel Capacity',fuel_efficiency:'Fuel Efficiency'};
+      const units={vehicle_type:'',engine_size:'L',horsepower:'HP',wheelbase:'in',width:'in',length:'in',curb_weight:'×1K lbs',fuel_capacity:'gal',fuel_efficiency:'mpg'};
+      let html='';
+      for(const[k,v] of Object.entries(payload)){
+        const isN=typeof v==='number';
+        let d=isN?parseFloat(v).toFixed(1):v;if(k==='curb_weight')d=parseFloat(v).toFixed(2);
+        html+='<div class="spec-item"><div class="s-lbl">'+(labels[k]||k)+'</div><div class="s-val">'+d+' <span style="color:var(--tx3);font-size:.78em">'+(units[k]||'')+'</span></div></div>';
+      }
+      document.getElementById('spec-grid').innerHTML=html;
+      document.getElementById('spec-result').style.display='block';
+      showToast('Prediksi berhasil! ✦');
+    }else{showToast('Gagal prediksi: '+data.error,'error');}
+  }catch(e){
+    console.error(e);
+    showToast('Tidak dapat terhubung ke API (localhost:5001). Pastikan app.py sudah dijalankan.','error');
+  }finally{
+    btn.disabled=false;btn.textContent='✦  Hitung Harga Mobil';
+  }
+}
+
+/* Init */
+window.addEventListener('load',()=>{
+  setTimeout(()=>document.getElementById('loader').classList.add('hide'),1800);
+  loadStats();
+  loadChart('/api/chart/top10-penjualan','ph-penjualan');
+  loadChart('/api/chart/harga-top10','ph-harga');
+  loadChart('/api/chart/evaluasi','ph-evaluasi');
+  loadChart('/api/chart/korelasi','ph-korelasi');
+});
+</script>
+</body>
+</html>
